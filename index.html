@@ -1,0 +1,211 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://cdn.skypack.dev/reveal.js@4/dist/reveal.css"/>
+  <link rel="stylesheet" href="https://cdn.skypack.dev/reveal.js@4/dist/theme/serif.css"/>
+  <link rel="stylesheet" href="https://cdn.skypack.dev/reveal.js@4/plugin/highlight/monokai.css"/>
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+  <script src="https://unpkg.com/lodash@4/lodash.min.js"></script>
+  <style>
+    .reveal a {
+      text-decoration: underline;
+    }
+
+    .reveal .left-align * {
+      text-align: left;
+    }
+    .reveal .left-align ul {
+      display: block;
+    }
+    .reveal .left-align ol {
+      display: block;
+    }
+
+    .reveal .grid{
+      display: grid;
+      grid-auto-flow: column;
+      gap: 1.5em;
+    }
+  </style>
+</head>
+<body>
+
+<script src="data.js"></script>
+
+<script type="module">
+
+  import { h, Component, render } from 'https://unpkg.com/preact@latest?module';
+  import htm from 'https://unpkg.com/htm?module';
+  import { useState, useEffect, useRef } from 'https://unpkg.com/preact@latest/hooks/dist/hooks.module.js?module';
+  import Reveal from "https://cdn.skypack.dev/reveal.js@4";
+  import RevealHighlight from "https://cdn.skypack.dev/reveal.js@4/plugin/highlight/highlight.js";
+  import RevealMarkdown from "https://cdn.skypack.dev/reveal.js@4/plugin/markdown/markdown.js";
+  import RevealNotes from "https://cdn.skypack.dev/reveal.js@4/plugin/notes/notes.js";
+  import RevealZoom from "https://cdn.skypack.dev/reveal.js@4/plugin/zoom/zoom.js";
+
+  const html = htm.bind(h);
+
+  // Documentation: https://github.com/davidshimjs/qrcodejs/blob/master/README.md
+  const QR = ({url, style = ''}) => {
+    const ref = useRef()
+    useEffect(() => {
+      if(ref.current)
+        new QRCode(ref.current, {
+          text: url,
+          width: 1024,
+          height: 1024,
+        })
+    }, [url])
+    return html`<div class="r-stretch" style="display: flex; justify-content: center;${style}" ref="${ref}"/>`
+  }
+
+  const OccupationGroup = ({group: {title, subjects, items}}) => html`
+    <section class="left-align">
+      <h2>${title}</h2>
+      ${subjects.length > 0 && html`<p>Предметы: ${subjects.join(', ')}</p>`}
+      <div class="grid">
+        ${items.map(item => html`<li class="fragment">
+          <p>${item.title}</p>
+          ${item.subjects.length > 0 && html`<p style="font-size: 0.75em;">Предметы: ${item.subjects.join(', ')}</p>`}
+          <a href="${item.esco}" style="font-size: 0.6em;">${item.esco}</a>
+        </li>`)}
+      </div>
+    </section>
+  `
+
+  const groups = Object.entries(_.groupBy(data, 'Group')).map(([title, items]) => {
+    const normalizedItems = items.map(it => ({...it, Subjects: it.Subjects.split(',').map(subj => subj.trim())}))
+    const subjects = _.intersection(...normalizedItems.map(it => it.Subjects))
+    return {
+      title,
+      subjects,
+      items: normalizedItems.map(it => ({
+        title: it.Occupation,
+        subjects: _.difference(it.Subjects, subjects),
+        esco: it.ESCO,
+      })) ,
+    }
+  })
+
+  const App = () => {
+    useEffect(() => {
+      let deck = new Reveal({
+        backgroundTransition: 'slide',
+        transition: 'slide',
+        plugins: [RevealHighlight, RevealMarkdown, RevealNotes, RevealZoom]
+      })
+      deck.initialize().then(() => {
+        console.log("Reveal Initialized");
+      });
+    },[])
+
+
+    return html`<div class="reveal">
+            <div class="slides">
+                <section>
+                  <h1>Привет ФиПЛ!</h1>
+                </section>
+                <section>
+                  <h2>Проф.ориентация лингвистов — дело рук самих лингвистов</h2>
+                  <p>Пьеса в двух действиях</p>
+                </section>
+                <section>
+                  <p>Действие первое</p>
+                  <h2>Проф.ориентация лингвистов</h2>
+                </section>
+
+                <section class="left-align">
+                    <h2>Направления</h2>
+                    <ul class="fragment">
+                        ${groups.map(it => html`<li>${it.title}</li>`)}
+                    </ul>
+                </section>
+
+                ${groups.map(it => html`<${OccupationGroup} group="${it}" />`)}
+
+                <section data-background-color="white" class="r-stack">
+                    <${QR} url="https://fipl.wave909.dev"/>
+                    <a href="https://fipl.wave909.dev">https://fipl.wave909.dev</a>
+                </section>
+
+                <section>
+                    <h1>Перерыв</h1>
+                </section>
+                <section>
+                    <p>Действие второе</p>
+                    <h2>Дело рук самих лингвистов</h2>
+                </section>
+
+                <section>
+                    <img src="images/occupations-table.png"/>
+                    <a href="https://docs.google.com/spreadsheets/d/1bFGUMRt7u481fMiIZ5fAu_Pbc9Ie4k8hrHBbiCDr7EE/edit?usp=sharing">Гугл таблица</a>
+                </section>
+
+                <section>
+                    <img src="images/occupations-code.png"/>
+                </section>
+
+                <section>
+                    <h1>Онтологии, словари и справочники</h1>
+                </section>
+                <section>
+                    <h3>Существующая онтология ESCO</h3>
+                    <img src="images/model-primer.png"/>
+                    <a href="https://ec.europa.eu/esco/lod/static/model.html">Описание модели</a>,
+                    <a href="https://ec.europa.eu/esco/lod/static/model.html">Модель в OWL</a>,
+                    <a href="https://esco.ec.europa.eu/en/use-esco/download">Датасет</a>
+                </section>
+
+                <section>
+                    <img src="images/linguist-relationships.png"/>
+                    <a href="https://esco.ec.europa.eu/en/classification/skill?uri=http%3A%2F%2Fdata.europa.eu%2Fesco%2Fskill%2F810df100-e85a-4c13-b619-34030a75ecc2">Страница в ESCO про лингвистику</a>
+                </section>
+
+                <section>
+                    <h3>Как развивают</h3>
+                </section>
+
+                <section>
+                    <div class="r-stack">
+                      <div class="fragment">
+                        <img src="images/paper-1.png"/>
+                        <p>January 2020 International Journal of Advanced Computer Science and Applications 11(3)
+                          DOI:10.14569/IJACSA.2020.0110308</p>
+                        <a href="https://www.researchgate.net/publication/340402371_An_Ontology_Driven_ESCO_LOD_Quality_Enhancement">Скачать</a>
+                      </div>
+                      <img src="images/proposed_esco.png"  class="fragment"/>
+                      <img src="images/proposed_esco_2.png" class="fragment"/>
+                    </div>
+                </section>
+
+                <section>
+                    <div class="r-stack">
+                      <img src="images/paper-2.png"  class="fragment"/>
+                      <img src="images/paper-2-2.png" class="fragment"/>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Что есть в России по этой теме?</h2>
+                    <ul>
+                        <li class="fragment">Проф.стандарты <a href="https://profstandart.rosmintrud.ru/">https://profstandart.rosmintrud.ru/</a></li>
+                        <li class="fragment">Справочник профессий <a href="https://spravochnik.rosmintrud.ru/professions">https://spravochnik.rosmintrud.ru/professions</a></li>
+                        <li class="fragment">ФГОС</li>
+                        <li class="fragment">ЕТКС/ЕКС</li>
+                        <li class="fragment">ОКЗ</li>
+                        <li class="fragment">ОКПДТР</li>
+                    </ul>
+                </section>
+
+                <section data-background-color="white" class="r-stack">
+                    <${QR} url="https://github.com/v4dkou/linguistics-career-ontology"/>
+                    <a href="https://github.com/v4dkou/linguistics-career-ontology">https://github.com/v4dkou/linguistics-career-ontology</a>
+                </section>
+            </div>
+    </div>`
+  };
+
+  render(html`<${App} />`, document.body);
+</script>
+</body>
+</html>
